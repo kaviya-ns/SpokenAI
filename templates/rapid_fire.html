@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapid Fire Questions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background-color: #f4f4f4;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-container {
+            display: inline-block;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        .question {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .question p {
+            margin: 10px 0;
+            color: #555;
+            font-size: 1.2em;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: darkblue;
+        }
+        .recording {
+            background-color: red !important;
+        }
+        audio {
+            margin-top: 10px;
+            width: 100%;
+        }
+        .submit-button {
+            margin-top: 20px;
+            background-color: green;
+        }
+        .submit-button:hover {
+            background-color: darkgreen;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .progress {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h2>Rapid Fire Questions</h2>
+    <div class="progress" id="questionTimer">Time Left: 5 seconds</div>
+    <form id="audioForm" action="{{ url_for('rapid_fire') }}" method="post" enctype="multipart/form-data">
+        {% for question in questions %}
+        <div class="question-container question" {% if loop.index0 != 0 %}style="display: none;"{% endif %}>
+            <p>{{ question.ques }}</p>
+            <button type="button" id="recordButton_{{ question.q_id }}" onclick="toggleRecording('{{ question.q_id }}')">Start Recording</button>
+            <audio id="audioPreview_{{ question.q_id }}" controls style="display: none;"></audio>
+            
+            <!-- Hidden inputs for files and timing data -->
+            <input type="file" name="audio_{{ question.q_id }}" id="audioFile_{{ question.q_id }}" style="display: none;">
+            <input type="hidden" name="recording_duration_{{ question.q_id }}" id="recordingDuration_{{ question.q_id }}" value="0">
+            <input type="hidden" name="start_time_{{ question.q_id }}" id="startTime_{{ question.q_id }}" value="0">
+            
+            <div class="button-container">
+                {% if not loop.last %}
+                    <button type="button" onclick="nextQuestion()">Next</button>
+                {% else %}
+                    <button type="submit" class="submit-button">Submit</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </form>
+    <script>
+        const questions = document.querySelectorAll('.question-container');
+        let currentQuestionIndex = 0;
+        const timePerQuestion = 5; // 5 seconds per question
+        let questionTimer;
+        let timeLeft = timePerQuestion;
+        let mediaRecorder;
+        let audioChunks = {};
+        let currentQuestionId;
+        let isRecording = false;
+        let recordingStreams = {};
+        let recordingStartTimes = {};
+
+        // Function to show the current question
+        function showQuestion(index) {
+            questions.forEach((q, i) => {
+                q.style.display = i === index ? 'block' : 'none';
+            });
+            resetTimer();
+        }
+
+        // Function to start the timer for the current question
+        function startTimer() {
+            const timerElement = document.getElementById('questionTimer');
+            questionTimer = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = `Time Left: ${timeLeft} seconds`;
+                if (timeLeft <= 0) {
+                    clearInterval(questionTimer);
+                    if (isRecording) {
+                        stopRecording(currentQuestionId); // Stop recording if it's active
+                    }
+                    if (currentQuestionIndex < questions.length - 1) {
+                        nextQuestion(); // Move to the next question
+                    } else {
+                        // Auto-submit on the last question when time runs out
+                        setTimeout(() => {
+                            document.getElementById('audioForm').submit();
+                        }, 500);
+                    }
+                }
+            }, 1000);
+        }
+
+        // Function to reset the timer
+        function resetTimer() {
+            clearInterval(questionTimer);
+            timeLeft = timePerQuestion;
+            document.getElementById('questionTimer').textContent = `Time Left: ${timeLeft} seconds`;
+            startTimer();
+        }
+
+        // Function to toggle recording
+        // Function to toggle recording
+        async function toggleRecording(questionId) {
+            const recordButton = document.getElementById(`recordButton_${questionId}`);
+            const audioPreview = document.getElementById(`audioPreview_${questionId}`);
+            const durationInput = document.getElementById(`recordingDuration_${questionId}`);
+            const startTimeInput = document.getElementById(`startTime_${questionId}`);
+
+            if (!isRecording) {
+                currentQuestionId = questionId;
+                isRecording = true;
+                recordButton.textContent = 'Stop Recording';
+                recordButton.classList.add('recording');
+
+                if (!audioChunks[questionId]) {
+                    audioChunks[questionId] = [];
+                } else {
+                    audioChunks[questionId] = [];
+                }
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    recordingStreams[questionId] = stream;
+
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks[questionId].push(event.data);
+                    };
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks[questionId], { type: 'audio/webm' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        audioPreview.src = audioUrl;
+                        audioPreview.style.display = 'block';
+
+                        // Create a File object from the Blob
+                        const audioFile = new File([audioBlob], `question_${questionId}.webm`, { type: 'audio/webm' });
+
+                        // Add the file to the FileList of the file input
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(audioFile);
+                        document.getElementById(`audioFile_${questionId}`).files = dataTransfer.files;
+
+                        // Calculate recording duration - cap at actual recording time
+                        const endTime = Date.now();
+                        const startTime = recordingStartTimes[questionId];
+                        const actualDuration = (endTime - startTime) / 1000; // Convert to seconds
+                        
+                        // Ensure duration doesn't exceed the time since recording started
+                        durationInput.value = actualDuration.toFixed(2);
+                        
+                        console.log(`Recording for question ${questionId} lasted ${durationInput.value} seconds`);
+                    };
+
+                    // Store the recording start time
+                    const startTime = Date.now();
+                    recordingStartTimes[questionId] = startTime;
+                    startTimeInput.value = startTime; // Set the start time in the hidden input
+
+                    mediaRecorder.start();
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    alert('Error accessing your microphone. Please ensure microphone permissions are granted.');
+                    isRecording = false;
+                    recordButton.textContent = 'Start Recording';
+                    recordButton.classList.remove('recording');
+                }
+            } else {
+                stopRecording(questionId);
+            }
+        }
+
+        // Function to stop recording
+        function stopRecording(questionId) {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                isRecording = false;
+                const recordButton = document.getElementById(`recordButton_${questionId}`);
+                recordButton.textContent = 'Start Recording';
+                recordButton.classList.remove('recording');
+
+                mediaRecorder.stop();
+
+                // Stop and release media stream
+                if (recordingStreams[questionId]) {
+                    recordingStreams[questionId].getTracks().forEach((track) => track.stop());
+                }
+            }
+        }
+
+        // Function to move to the next question
+        function nextQuestion() {
+            if (isRecording) {
+                stopRecording(currentQuestionId); // Stop recording if it's active
+            }
+
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                showQuestion(currentQuestionIndex);
+            }
+        }
+
+        // Start with the first question
+        showQuestion(0);
+    </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Round 3</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            margin-top: 50px; 
+            background-color: #f4f4f4; 
+        }
+        h2 { 
+            margin-bottom: 20px; 
+            color: #333; 
+        }
+        .container { 
+            display: inline-block; 
+            padding: 20px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            background-color: white; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); 
+        }
+        ol { 
+            text-align: left; 
+            margin: 20px 0; 
+            padding-left: 20px; 
+        }
+        p { 
+            margin: 10px 0; 
+            color: #555; 
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        button { 
+            padding: 10px 20px; 
+            background-color: blue; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+        }
+        button:hover { 
+            background-color: darkblue; 
+        }
+        .back-button {
+            background-color: gray;
+        }
+        .back-button:hover {
+            background-color: darkgray;
+        }
+        .flash-messages { 
+            list-style-type: none; 
+            padding: 0; 
+            color: red; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Conductor</h2>
+        <ol>
+            <p>&#127917;&#10024; Explore different energy levels and emotions in your voice!</p>
+            <p> Get real-time feedback and tips to make your speech more expressive and engaging. &#127897;&#128161;</p>
+        </ol>
+        <div class="button-container">
+            <button type="button" class="back-button" onclick="window.history.back()">Back</button>
+            <form action="{{ url_for('conductor_instructions') }}" method="POST">
+                <button type="submit">Continue</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

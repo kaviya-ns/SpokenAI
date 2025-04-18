@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triple Step Challenge</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 50px auto;
+        }
+        h2 {
+            color: #333;
+        }
+        p {
+            color: #555;
+        }
+        .distractor-word {
+            font-size: 48px;
+            font-weight: bold;
+            color: red;
+            margin: 20px 0;
+            display: none; /* Initially hidden */
+        }
+        button {
+            padding: 10px 20px;
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: darkblue;
+        }
+        .recording {
+            background-color: red !important;
+        }
+        audio {
+            margin-top: 10px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="progress">2/3</div>
+        <h2>Triple Step Challenge</h2>
+        <p>Speak on the topic below for 5 minutes.</p>
+        <h3>Topic: {{ topic }}</h3> <!-- Display the single topic -->
+
+        <!-- Distractor word display -->
+        <div id="distractorDisplay" class="distractor-word"></div>
+
+        <form id="audioForm" action="{{ url_for('triple_step') }}" method="POST" enctype="multipart/form-data">
+            <button type="button" id="recordButton" onclick="startStopRecording()">Start Recording</button>
+            <audio id="audioPlayer" controls></audio>
+            <input type="file" id="audioInput" name="audio_file" hidden>
+            <input type="hidden" id="start_time" name="start_time">
+            <br><br>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <script>
+        // Declare variables at the top level of the script
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let distractorInterval;
+
+        // Set up distractors from Flask template correctly
+        const distractorWords = JSON.parse('{{ distractors | tojson | safe }}');
+
+        async function startStopRecording() {
+            const recordButton = document.getElementById("recordButton");
+
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); // Save as webm
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        document.getElementById("audioPlayer").src = audioUrl;
+
+                        // Convert Blob to File
+                        const file = new File([audioBlob], "response.webm", { type: "audio/webm" });
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        document.getElementById("audioInput").files = dataTransfer.files;
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordButton.textContent = "Stop Recording";
+                    recordButton.classList.add("recording");
+                    document.getElementById("start_time").value = Date.now() / 1000; // Store start time in seconds
+
+                    // Start showing distractor words at random intervals
+                    showDistractorWords();
+
+                    // Auto stop after 5 minutes
+                    setTimeout(() => {
+                        if (isRecording) {
+                            stopRecording();
+                        }
+                    }, 300000); // 5 minutes = 300,000 milliseconds
+
+                } catch (error) {
+                    alert("Microphone access denied. Please enable microphone permissions.");
+                    console.error("Error accessing microphone:", error);
+                }
+            } else {
+                stopRecording();
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                document.getElementById("recordButton").textContent = "Start Recording";
+                document.getElementById("recordButton").classList.remove("recording");
+                isRecording = false;
+
+                // Stop showing distractor words
+                clearInterval(distractorInterval);
+                document.getElementById("distractorDisplay").style.display = "none";
+            }
+        }
+
+        function showDistractorWords() {
+            const distractorDisplay = document.getElementById("distractorDisplay");
+
+            distractorInterval = setInterval(() => {
+                // Pick a random distractor word
+                const randomWord = distractorWords[Math.floor(Math.random() * distractorWords.length)];
+                distractorDisplay.textContent = randomWord;
+                distractorDisplay.style.display = "block";
+
+                // Hide the word after 2 seconds
+                setTimeout(() => {
+                    distractorDisplay.style.display = "none";
+                }, 2000); // Display each word for 2 seconds
+            }, 10000); // Show a new word every 10 seconds
+        }
+    </script>
+</body>
+</html>
+

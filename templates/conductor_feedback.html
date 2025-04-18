@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conductor Feedback</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin-top: 50px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: auto;
+        }
+        h2 {
+            color: #333;
+        }
+        .feedback-item {
+            text-align: left;
+            margin: 10px 0;
+            padding: 10px;
+            background: #e3e3e3;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .next-button {
+            background-color: blue;
+            color: white;
+        }
+        .next-button:hover {
+            background-color: darkblue;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Conductor Exercise Feedback</h2>
+        <div class="feedback-item">
+            <p><strong>Pitch Variation Score:</strong> {{ pitch_score }}/10</p>
+            <p><strong>Feedback:</strong> {{ pitch_feedback }}</p>
+        </div>
+        <div class="feedback-item">
+            <p><strong>Volume Control Score:</strong> {{ volume_score }}/10</p>
+            <p><strong>Feedback:</strong> {{ volume_feedback }}</p>
+        </div>
+        <div class="feedback-item">
+            <p><strong>Pacing Score:</strong> {{ pace_score }}/10</p>
+            <p><strong>Feedback:</strong> {{ pace_feedback }}</p>
+        </div>
+        <div class="feedback-item">
+            <p><strong>Emotional Expression Score:</strong> {{ expression_score }}/10</p>
+            <p><strong>Feedback:</strong> {{ expression_feedback }}</p>
+        </div>
+        <form method="POST">
+            <button type="submit" class="next-button">Next</button>
+        </form>
+    </div>
+</body>
+</html>

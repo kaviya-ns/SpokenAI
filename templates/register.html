@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background-color: #f4f4f4; 
+            margin-top: 50px; 
+        }
+        h2 { 
+            margin-bottom: 20px; 
+            color: #333; 
+        }
+        input { 
+            width: 200px; 
+            padding: 10px; 
+            margin: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            background-color: blue; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { 
+            background-color: darkblue; 
+        }
+        .form-container { 
+            display: inline-block; 
+            padding: 20px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            background-color: white; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); 
+        }
+        .flash-messages {
+            list-style: none; /* Remove bullet points */
+            padding: 0; /* Remove default padding */
+            margin: 0; /* Remove default margin */
+            color: red; /* Style for error messages */
+            text-align: center; /* Center-align messages */
+        }
+        a {
+            color: blue; 
+            text-decoration: none; 
+        }
+        a:hover {
+            text-decoration: underline; 
+        }
+    </style>
+</head>
+<body>
+    <h2>Sign Up</h2>
+    <div class="form-container">
+        <form method="POST">
+            <div>
+                <input type="text" name="username" placeholder="Username" required>
+            </div>
+            <div>
+                <input type="password" name="password" placeholder="Password" required>
+            </div>
+            <div>
+                <button type="submit">Register</button>
+            </div>
+        </form>
+        <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocal Expression Exercise</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background-color: #f4f4f4; 
+            position: relative;
+        }
+        .container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); 
+            max-width: 600px; 
+            margin: 50px auto; 
+            position: relative;
+        }
+        h2 { color: #333; }
+        p { color: #555; }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        button { 
+            padding: 10px 20px; 
+            background-color: blue; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            flex: 1; /* Make buttons take equal space */
+            margin: 0 5px; /* Add spacing between buttons */
+        }
+        button:hover { background-color: darkblue; }
+        .recording { background-color: red !important; }
+        .progress { 
+            position: absolute; 
+            top: 10px; 
+            right: 15px; 
+            font-weight: bold; 
+            color: #555; 
+        }
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="progress">3/3</div>  
+        <h2>Vocal Expression Exercise</h2>
+        <p>Select a mood and try to match the expression while speaking.</p>
+
+        <form id="voiceForm" action="{{ url_for('conductor') }}" method="POST" enctype="multipart/form-data">
+            <label for="mood">Choose a Mood:</label>
+            <select id="mood" name="mood_qid">
+                {% for mood in moods %}
+                    <option value="{{ mood.q_id }}">{{ mood.mood }} - "{{ mood.sentence }}"</option>
+                {% endfor %}
+            </select>
+
+            <p>Read the sentence aloud while recording.</p>
+            <div class="button-container">
+                <button type="button" id="recordButton" onclick="startStopRecording()">Start Recording</button>
+                <button type="submit">Submit</button>
+            </div>
+            <audio id="audioPlayer" controls></audio>
+            <input type="file" id="audioInput" name="audio_file" hidden>
+        </form>
+
+        <div id="feedback"></div>
+    </div>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let timeLeft = 300; // 5 minutes in seconds
+        let timerInterval;
+
+        // Function to start or stop recording
+        async function startStopRecording() {
+            const recordButton = document.getElementById("recordButton");
+
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); // Save as webm
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        document.getElementById("audioPlayer").src = audioUrl;
+
+                        // Convert Blob to File
+                        const file = new File([audioBlob], "response.webm", { type: "audio/webm" });
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        document.getElementById("audioInput").files = dataTransfer.files;
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordButton.textContent = "Stop Recording";
+                    recordButton.classList.add("recording");
+                } catch (error) {
+                    alert("Microphone access denied. Please enable microphone permissions.");
+                }
+            } else {
+                mediaRecorder.stop();
+                recordButton.textContent = "Start Recording";
+                recordButton.classList.remove("recording");
+                isRecording = false;
+            }
+        }
+
+        // Function to update the timer
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById("timer").textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById("timer").textContent = "Time's up!";
+                document.getElementById("recordButton").disabled = true; // Disable recording button
+
+                // Stop recording if it is in progress
+                if (isRecording) {
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    document.getElementById("recordButton").textContent = "Start Recording";
+                    document.getElementById("recordButton").classList.remove("recording");
+                }
+            } else {
+                timeLeft--;
+            }
+        }
+
+        // Start the timer when the page loads
+        timerInterval = setInterval(updateTimer, 1000);
+    </script>
+</body>
+</html>
